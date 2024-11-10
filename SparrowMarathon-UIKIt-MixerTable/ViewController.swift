@@ -8,14 +8,14 @@
 import UIKit
 
 class ViewController: UIViewController {
-    private var items: [ItemViewModel] = (0...40).map { ItemViewModel(title: String($0), isSelected: false) }
+    private var items: [ItemViewModel] = (0...33).map { ItemViewModel(title: String($0), isSelected: false) }
     
     private var dataSource: UITableViewDiffableDataSource<Section, ItemViewModel.ID>?
     private lazy var mixerTable: UITableView = {
         let tableView = UITableView(frame: .zero, style: .insetGrouped)
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.delegate = self
-        tableView.register(Cell.self, forCellReuseIdentifier: "Cell")
+        tableView.register(ItemCell.self, forCellReuseIdentifier: ItemCell.identifier)
         return tableView
     }()
     
@@ -28,19 +28,20 @@ class ViewController: UIViewController {
 
 extension ViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+        
         guard var snapshot = dataSource?.snapshot() else { return }
         items[indexPath.row].isSelected.toggle()
-        snapshot.reloadItems([items[indexPath.row].id])
+        snapshot.reconfigureItems([items[indexPath.row].id])
         
-        guard items[indexPath.row].isSelected else {
+        guard items[indexPath.row].isSelected, let firstItem = items.first, firstItem.id != items[indexPath.row].id else {
             dataSource?.apply(snapshot)
             return
         }
         
-        guard let firstItem = items.first else { return }
-        let item = items.remove(at: indexPath.row)
-        items.insert(item, at: 0)
-        snapshot.moveItem(item.id, beforeItem: firstItem.id)
+        let movableItem = items.remove(at: indexPath.row)
+        items.insert(movableItem, at: 0)
+        snapshot.moveItem(movableItem.id, beforeItem: firstItem.id)
         
         dataSource?.apply(snapshot)
     }
@@ -63,8 +64,8 @@ private extension ViewController {
     
     func setupTableView() {
         dataSource = UITableViewDiffableDataSource<Section, ItemViewModel.ID>(tableView: mixerTable) { tableView, indexPath, id in
-            let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
-            guard let item = self.items.first(where: { $0.id == id }) else { return UITableViewCell() }
+            guard let cell = tableView.dequeueReusableCell(withIdentifier: ItemCell.identifier, for: indexPath) as? ItemCell,
+                  let item = self.items.first(where: { $0.id == id }) else { return UITableViewCell() }
             cell.textLabel?.text = item.title
             cell.accessoryType = item.isSelected ? .checkmark : .none
             return cell
@@ -96,6 +97,6 @@ struct ItemViewModel: Identifiable {
     var isSelected: Bool
 }
 
-class Cell: UITableViewCell {
-    
+class ItemCell: UITableViewCell {
+    static let identifier: String = "ItemCell"
 }
