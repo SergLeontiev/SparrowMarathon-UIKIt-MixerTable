@@ -80,8 +80,8 @@ private extension ViewController {
     @objc func shuffle() {
         guard var snapshot = dataSource?.snapshot() else { return }
         snapshot.deleteItems(items.map(\.id))
-        let shuffledItems = items.shuffled()
-        snapshot.appendItems(shuffledItems.map(\.id))
+        items.shuffle()
+        snapshot.appendItems(items.map(\.id))
         dataSource?.apply(snapshot)
     }
 }
